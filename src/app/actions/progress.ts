@@ -7,6 +7,7 @@ import {
   setCamoCategoryCompleted,
   setDiamondMatches,
   setDiamondTracking,
+  setWeaponGold,
   toggleChallenge,
 } from "@/lib/services/progress";
 import type { CamoCategory } from "@/types";
@@ -53,6 +54,28 @@ export async function setCamoCategoryAction(input: {
     return {
       ok: false,
       error: actionError(error, "Could not update that camo category."),
+    };
+  }
+}
+
+export async function setWeaponGoldAction(input: {
+  weaponId: string;
+  slug: string;
+  gold: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await setWeaponGold({
+      userId: LOCAL_USER_ID,
+      weaponId: input.weaponId,
+      gold: input.gold,
+    });
+    revalidatePath("/", "layout");
+    revalidatePath(`/arsenal/${input.slug}`);
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: actionError(error, "Could not update Gold for that weapon."),
     };
   }
 }

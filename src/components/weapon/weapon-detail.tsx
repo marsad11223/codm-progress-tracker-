@@ -1,6 +1,7 @@
 import { CategoryBulk } from "@/components/weapon/category-bulk";
 import { ChallengeToggle } from "@/components/weapon/challenge-toggle";
 import { DiamondPanel } from "@/components/weapon/diamond-panel";
+import { MarkGold } from "@/components/weapon/mark-gold";
 import { WeaponImage } from "@/components/weapon-image";
 import { ProgressBar } from "@/components/progress-bar";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +61,18 @@ export function WeaponDetail({ weapon }: { weapon: WeaponDetailDTO }) {
             <span className="font-heading text-lg font-semibold tabular-nums">
               {weapon.progressPercentage}%
             </span>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <MarkGold
+              weaponId={weapon.id}
+              slug={weapon.slug}
+              goldUnlocked={weapon.goldUnlocked}
+            />
+            <p className="text-xs text-muted-foreground">
+              {weapon.goldUnlocked
+                ? "Every base camo is marked done."
+                : "Marks every base camo done, so Gold unlocks."}
+            </p>
           </div>
         </div>
       </header>

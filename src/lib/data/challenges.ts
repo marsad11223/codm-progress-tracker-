@@ -36,6 +36,16 @@ export async function listChallengesInCategory(
   });
 }
 
+export async function listBaseChallenges(
+  db: Db,
+  weaponId: string,
+): Promise<{ id: string; target: number }[]> {
+  return db.challenge.findMany({
+    where: { weaponId, camo: { category: { not: "GOLD" } } },
+    select: { id: true, target: true },
+  });
+}
+
 export async function listChallengeState(
   db: Db,
   userId: string,

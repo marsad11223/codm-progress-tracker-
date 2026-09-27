@@ -1,6 +1,7 @@
 import { setGoldTarget } from "@/lib/data/camos";
 import {
   findChallenge,
+  listBaseChallenges,
   listChallengeState,
   listChallengesInCategory,
 } from "@/lib/data/challenges";
@@ -114,6 +115,38 @@ export async function setCamoCategoryCompleted(input: {
         challengeId: challenge.id,
         completed: input.completed,
         currentValue: input.completed ? challenge.target : 0,
+        targetValue: challenge.target,
+      })),
+    });
+    await recomputeWeaponProgress(db, input.userId, input.weaponId);
+  }, { timeout: 20_000 });
+}
+
+export async function setWeaponGold(input: {
+  userId: string;
+  weaponId: string;
+  gold: boolean;
+}): Promise<void> {
+  await runTransaction(async (db) => {
+    const weapon = await db.weapon.findFirst({
+      where: { id: input.weaponId, active: true },
+      select: { id: true },
+    });
+    if (!weapon) throw new AppError("Weapon not found.");
+    const challenges = await listBaseChallenges(db, input.weaponId);
+    if (challenges.length === 0) {
+      throw new AppError("This weapon has no base camos.");
+    }
+    const ids = challenges.map((challenge) => challenge.id);
+    await db.userChallengeProgress.deleteMany({
+      where: { userId: input.userId, challengeId: { in: ids } },
+    });
+    await db.userChallengeProgress.createMany({
+      data: challenges.map((challenge) => ({
+        userId: input.userId,
+        challengeId: challenge.id,
+        completed: input.gold,
+        currentValue: input.gold ? challenge.target : 0,
         targetValue: challenge.target,
       })),
     });
