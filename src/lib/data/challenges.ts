@@ -1,3 +1,4 @@
+import type { CamoCategory } from "@prisma/client";
 import type { Db } from "@/lib/db/prisma";
 
 export type ChallengeRecord = {
@@ -21,6 +22,18 @@ export async function findChallenge(
     select: { id: true, weaponId: true, target: true },
   });
   return row;
+}
+
+export async function listChallengesInCategory(
+  db: Db,
+  weaponId: string,
+  category: CamoCategory,
+): Promise<{ id: string; target: number }[]> {
+  return db.challenge.findMany({
+    where: { weaponId, camo: { category } },
+    select: { id: true, target: true },
+    orderBy: { sortOrder: "asc" },
+  });
 }
 
 export async function listChallengeState(

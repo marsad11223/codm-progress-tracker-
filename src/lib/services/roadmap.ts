@@ -36,3 +36,16 @@ export async function saveGrindOrder(weaponIds: string[]): Promise<void> {
     await replaceGrindOrder(db, LOCAL_USER_ID, weaponIds);
   });
 }
+
+export async function promoteWeaponToFirst(weaponId: string): Promise<void> {
+  const weapons = await listWeapons(prisma, LOCAL_USER_ID);
+  if (!weapons.some((weapon) => weapon.id === weaponId)) {
+    throw new AppError("That weapon is not in the active catalogue.");
+  }
+  const ordered = await listGrind(prisma, LOCAL_USER_ID);
+  const ids = ordered
+    .map((entry) => entry.weapon.id)
+    .filter((id) => id !== weaponId);
+  ids.unshift(weaponId);
+  await saveGrindOrder(ids);
+}

@@ -26,7 +26,9 @@ export function WeaponCard({ weapon }: { weapon: WeaponDTO }) {
               <h2 className="truncate font-heading text-lg font-semibold">
                 {weapon.name}
               </h2>
-              {weapon.goldUnlocked ? (
+              {weapon.diamondUnlocked ? (
+                <Badge className="bg-sky-600 text-white">Diamond</Badge>
+              ) : weapon.goldUnlocked ? (
                 <Badge className="bg-primary text-primary-foreground">Gold</Badge>
               ) : null}
             </div>

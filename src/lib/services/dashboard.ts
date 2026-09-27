@@ -2,7 +2,7 @@ import { listGrind } from "@/lib/data/grind-order";
 import { listWeapons } from "@/lib/data/weapons";
 import { prisma, type Db } from "@/lib/db/prisma";
 import { catalogueLabel, categoriesForFilter, roundHalfUp } from "@/lib/format";
-import { pickNextBest } from "@/lib/services/recommendation";
+import { pickNextBest, rankOpenWeapons } from "@/lib/services/recommendation";
 import type { DashboardSummary, GrindCandidate, WeaponDTO } from "@/types";
 
 function inFilter(weapon: WeaponDTO, category: string): boolean {
@@ -66,6 +66,18 @@ export async function getDashboard(
     })
     .slice(0, 5);
 
+  const suggested = rankOpenWeapons(candidates);
+  const pinned = grind
+    .filter((entry) => !entry.weapon.goldUnlocked && inFilter(entry.weapon, category))
+    .map((entry) => entry.weapon);
+  const pinnedIds = new Set(pinned.map((weapon) => weapon.id));
+  const upNext = [
+    ...pinned.map((weapon) => ({ weapon, pinned: true })),
+    ...suggested
+      .filter((weapon) => !pinnedIds.has(weapon.id))
+      .map((weapon) => ({ weapon, pinned: false })),
+  ];
+
   return {
     totalWeapons,
     catalogueLabel: catalogueLabel(weapons.map((weapon) => weapon.category)),
@@ -77,5 +89,7 @@ export async function getDashboard(
     currentGrindNote,
     recentlyCompleted,
     nextBest,
+    upNext,
+    weapons,
   };
 }

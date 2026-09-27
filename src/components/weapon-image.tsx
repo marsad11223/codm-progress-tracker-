@@ -22,7 +22,10 @@ export function WeaponImage({
     <img
       src={current}
       alt={alt}
-      className={cn("bg-muted object-cover", className)}
+      className={cn(
+        "bg-[radial-gradient(circle_at_50%_60%,oklch(0.34_0.03_75),oklch(0.13_0.01_70))] object-contain p-1",
+        className,
+      )}
       onError={() => {
         if (current !== FALLBACK) setCurrent(FALLBACK);
       }}

@@ -23,6 +23,13 @@ function compareCandidates(a: GrindCandidate, b: GrindCandidate): number {
   return a.weapon.name.localeCompare(b.weapon.name);
 }
 
+export function rankOpenWeapons(candidates: GrindCandidate[]) {
+  return candidates
+    .filter((candidate) => candidate.weapon.active && !candidate.weapon.goldUnlocked)
+    .sort(compareCandidates)
+    .map((candidate) => candidate.weapon);
+}
+
 export function pickNextBest(candidates: GrindCandidate[]): NextBestGrind | null {
   const eligible = candidates.filter(
     (candidate) => candidate.weapon.active && !candidate.weapon.goldUnlocked,

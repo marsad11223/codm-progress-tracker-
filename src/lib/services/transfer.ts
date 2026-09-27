@@ -1,9 +1,9 @@
 import { deleteGrindOrder, listGrind, replaceGrindOrder } from "@/lib/data/grind-order";
-import { deleteUserProgress } from "@/lib/data/progress";
+import { deleteUserProgress, updateDiamondProgress } from "@/lib/data/progress";
 import { progressProvider } from "@/lib/data/database-provider";
 import { prisma, runTransaction, type Db } from "@/lib/db/prisma";
 import { AppError } from "@/lib/app-error";
-import { LOCAL_USER_ID } from "@/lib/constants";
+import { DIAMOND_MATCH_TARGET, LOCAL_USER_ID } from "@/lib/constants";
 import { recomputeWeaponProgress } from "@/lib/services/progress";
 import {
   CAMO_CATEGORIES,
@@ -92,6 +92,35 @@ export function parseExportFile(value: unknown): ExportFile {
     slugs.add(slug);
     return slug;
   });
+  const diamondProgress = Array.isArray(record.diamondProgress)
+    ? record.diamondProgress.map((entry, index) => {
+        if (!entry || typeof entry !== "object") {
+          throw new AppError(`Diamond row ${index + 1} is not an object.`);
+        }
+        const row = entry as Record<string, unknown>;
+        if (typeof row.weaponSlug !== "string" || row.weaponSlug.length === 0) {
+          throw new AppError(`Diamond row ${index + 1} is missing a weapon slug.`);
+        }
+        if (typeof row.tracked !== "boolean") {
+          throw new AppError(`Diamond row ${index + 1} is missing tracked.`);
+        }
+        if (
+          typeof row.matches !== "number" ||
+          !Number.isInteger(row.matches) ||
+          row.matches < 0 ||
+          row.matches > DIAMOND_MATCH_TARGET
+        ) {
+          throw new AppError(
+            `Diamond row ${index + 1} must be a whole number from 0 to ${DIAMOND_MATCH_TARGET}.`,
+          );
+        }
+        return {
+          weaponSlug: row.weaponSlug,
+          tracked: row.tracked,
+          matches: row.matches,
+        };
+      })
+    : [];
   return {
     schemaVersion: 1,
     exportedAt: record.exportedAt,
@@ -101,13 +130,22 @@ export function parseExportFile(value: unknown): ExportFile {
       : {}),
     challengeProgress,
     grindOrder,
+    ...(diamondProgress.length > 0 ? { diamondProgress } : {}),
   };
 }
 
 export async function buildExport(): Promise<ExportFile> {
-  const [progress, grind] = await Promise.all([
+  const [progress, grind, diamondRows] = await Promise.all([
     progressProvider.listChallengeProgress(LOCAL_USER_ID),
     listGrind(prisma, LOCAL_USER_ID),
+    prisma.userWeaponProgress.findMany({
+      where: {
+        userId: LOCAL_USER_ID,
+        OR: [{ diamondTracked: true }, { diamondMatches: { gt: 0 } }],
+      },
+      include: { weapon: { select: { slug: true } } },
+      orderBy: { weapon: { slug: "asc" } },
+    }),
   ]);
   return {
     schemaVersion: 1,
@@ -129,6 +167,15 @@ export async function buildExport(): Promise<ExportFile> {
         ),
       ),
     grindOrder: grind.map((entry) => entry.weapon.slug),
+    ...(diamondRows.length > 0
+      ? {
+          diamondProgress: diamondRows.map((row) => ({
+            weaponSlug: row.weapon.slug,
+            tracked: row.diamondTracked,
+            matches: row.diamondMatches,
+          })),
+        }
+      : {}),
   };
 }
 
@@ -199,6 +246,30 @@ export async function importProgress(value: unknown): Promise<void> {
       await replaceGrindOrder(db, LOCAL_USER_ID, orderedIds);
       for (const weaponId of touched) {
         await recomputeWeaponProgress(db, LOCAL_USER_ID, weaponId);
+      }
+      for (const row of file.diamondProgress ?? []) {
+        const weapon = await db.weapon.findFirst({
+          where: { slug: row.weaponSlug, active: true },
+          select: { id: true },
+        });
+        if (!weapon) {
+          throw new AppError(`Diamond slug ${row.weaponSlug} is not an active weapon.`);
+        }
+        const progress = await db.userWeaponProgress.findUnique({
+          where: {
+            userId_weaponId: { userId: LOCAL_USER_ID, weaponId: weapon.id },
+          },
+          select: { goldUnlocked: true },
+        });
+        const goldUnlocked = progress?.goldUnlocked ?? false;
+        await updateDiamondProgress(db, {
+          userId: LOCAL_USER_ID,
+          weaponId: weapon.id,
+          diamondTracked: row.tracked && goldUnlocked,
+          diamondMatches: row.matches,
+          diamondUnlocked:
+            goldUnlocked && row.tracked && row.matches >= DIAMOND_MATCH_TARGET,
+        });
       }
     },
     { timeout: 60_000 },

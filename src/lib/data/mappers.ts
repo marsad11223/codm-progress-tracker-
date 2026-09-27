@@ -16,6 +16,9 @@ export function readReasons(value: Prisma.JsonValue): string[] {
 type ProgressRow = {
   progressPercentage: number;
   goldUnlocked: boolean;
+  diamondTracked: boolean;
+  diamondMatches: number;
+  diamondUnlocked: boolean;
   startedAt: Date | null;
   completedAt: Date | null;
   updatedAt: Date;
@@ -76,6 +79,9 @@ export function toWeaponDTO(weapon: WeaponRow): WeaponDTO {
     updatedAt: weapon.updatedAt.toISOString(),
     progressPercentage: progress?.progressPercentage ?? 0,
     goldUnlocked: progress?.goldUnlocked ?? false,
+    diamondTracked: progress?.diamondTracked ?? false,
+    diamondMatches: progress?.diamondMatches ?? 0,
+    diamondUnlocked: progress?.diamondUnlocked ?? false,
     startedAt: progress?.startedAt?.toISOString() ?? null,
     completedAt: progress?.completedAt?.toISOString() ?? null,
     progressUpdatedAt: progress?.updatedAt.toISOString() ?? null,

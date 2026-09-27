@@ -64,6 +64,9 @@ export type WeaponDTO = {
   updatedAt: string;
   progressPercentage: number;
   goldUnlocked: boolean;
+  diamondTracked: boolean;
+  diamondMatches: number;
+  diamondUnlocked: boolean;
   startedAt: string | null;
   completedAt: string | null;
   progressUpdatedAt: string | null;
@@ -102,6 +105,9 @@ export type WeaponProgressDTO = {
   weaponId: string;
   progressPercentage: number;
   goldUnlocked: boolean;
+  diamondTracked: boolean;
+  diamondMatches: number;
+  diamondUnlocked: boolean;
   startedAt: string | null;
   completedAt: string | null;
   updatedAt: string;
@@ -141,6 +147,8 @@ export type DashboardSummary = {
   currentGrindNote: string | null;
   recentlyCompleted: WeaponDTO[];
   nextBest: NextBestGrind | null;
+  upNext: { weapon: WeaponDTO; pinned: boolean }[];
+  weapons: WeaponDTO[];
 };
 
 export type AnalyticsCategoryRow = {
@@ -181,6 +189,11 @@ export type ExportFile = {
   theme?: "dark" | "light";
   challengeProgress: ExportChallenge[];
   grindOrder: string[];
+  diamondProgress?: {
+    weaponSlug: string;
+    tracked: boolean;
+    matches: number;
+  }[];
 };
 
 export type ActionResult<T = undefined> =

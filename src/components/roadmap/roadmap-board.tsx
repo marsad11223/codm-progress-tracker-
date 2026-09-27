@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronUp, GripVertical, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { saveGrindOrderAction } from "@/app/actions/roadmap";
+import { WeaponImage } from "@/components/weapon-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/progress-bar";
@@ -21,9 +22,11 @@ function move<T>(items: T[], from: number, to: number): T[] {
 export function RoadmapBoard({
   ordered,
   tray,
+  art,
 }: {
   ordered: RoadmapItem[];
   tray: WeaponDTO[];
+  art: Record<string, string>;
 }) {
   const [items, setItems] = useState(ordered.map((entry) => entry.weapon));
   const [pool, setPool] = useState(tray);
@@ -104,6 +107,11 @@ export function RoadmapBoard({
                   {index + 1}
                 </span>
                 <GripVertical className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <WeaponImage
+                  src={art[weapon.id] ?? "/weapons/fallback.svg"}
+                  alt=""
+                  className="size-12 shrink-0 rounded-lg"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <Link href={`/arsenal/${weapon.slug}`} className="truncate font-medium hover:text-primary">

@@ -34,6 +34,8 @@ export async function findWeaponProgress(
 ): Promise<{
   progressPercentage: number;
   goldUnlocked: boolean;
+  diamondTracked: boolean;
+  diamondMatches: number;
   startedAt: Date | null;
   completedAt: Date | null;
 } | null> {
@@ -42,6 +44,8 @@ export async function findWeaponProgress(
     select: {
       progressPercentage: true,
       goldUnlocked: true,
+      diamondTracked: true,
+      diamondMatches: true,
       startedAt: true,
       completedAt: true,
     },
@@ -55,6 +59,7 @@ export async function upsertWeaponProgress(
     weaponId: string;
     progressPercentage: number;
     goldUnlocked: boolean;
+    diamondUnlocked: boolean;
     startedAt: Date | null;
     completedAt: Date | null;
   },
@@ -67,8 +72,43 @@ export async function upsertWeaponProgress(
     update: {
       progressPercentage: input.progressPercentage,
       goldUnlocked: input.goldUnlocked,
+      diamondUnlocked: input.diamondUnlocked,
       startedAt: input.startedAt,
       completedAt: input.completedAt,
+    },
+  });
+}
+
+export async function updateDiamondProgress(
+  db: Db,
+  input: {
+    userId: string;
+    weaponId: string;
+    diamondTracked: boolean;
+    diamondMatches: number;
+    diamondUnlocked: boolean;
+  },
+): Promise<void> {
+  const existing = await findWeaponProgress(db, input.userId, input.weaponId);
+  await db.userWeaponProgress.upsert({
+    where: {
+      userId_weaponId: { userId: input.userId, weaponId: input.weaponId },
+    },
+    create: {
+      userId: input.userId,
+      weaponId: input.weaponId,
+      progressPercentage: existing?.progressPercentage ?? 0,
+      goldUnlocked: existing?.goldUnlocked ?? false,
+      startedAt: existing?.startedAt ?? null,
+      completedAt: existing?.completedAt ?? null,
+      diamondTracked: input.diamondTracked,
+      diamondMatches: input.diamondMatches,
+      diamondUnlocked: input.diamondUnlocked,
+    },
+    update: {
+      diamondTracked: input.diamondTracked,
+      diamondMatches: input.diamondMatches,
+      diamondUnlocked: input.diamondUnlocked,
     },
   });
 }
@@ -84,6 +124,9 @@ export async function listWeaponProgress(
     weaponId: row.weaponId,
     progressPercentage: row.progressPercentage,
     goldUnlocked: row.goldUnlocked,
+    diamondTracked: row.diamondTracked,
+    diamondMatches: row.diamondMatches,
+    diamondUnlocked: row.diamondUnlocked,
     startedAt: row.startedAt?.toISOString() ?? null,
     completedAt: row.completedAt?.toISOString() ?? null,
     updatedAt: row.updatedAt.toISOString(),

@@ -1,4 +1,6 @@
+import { CategoryBulk } from "@/components/weapon/category-bulk";
 import { ChallengeToggle } from "@/components/weapon/challenge-toggle";
+import { DiamondPanel } from "@/components/weapon/diamond-panel";
 import { WeaponImage } from "@/components/weapon-image";
 import { ProgressBar } from "@/components/progress-bar";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +46,9 @@ export function WeaponDetail({ weapon }: { weapon: WeaponDetailDTO }) {
             ) : (
               <Badge variant="outline">Gold locked</Badge>
             )}
+            {weapon.diamondUnlocked ? (
+              <Badge className="bg-sky-600 text-white">Diamond</Badge>
+            ) : null}
           </div>
           {weapon.releaseSeason ? (
             <p className="mt-1 text-sm text-muted-foreground">{weapon.releaseSeason}</p>
@@ -58,6 +63,16 @@ export function WeaponDetail({ weapon }: { weapon: WeaponDetailDTO }) {
           </div>
         </div>
       </header>
+
+      <DiamondPanel
+        weaponId={weapon.id}
+        slug={weapon.slug}
+        name={weapon.name}
+        goldUnlocked={weapon.goldUnlocked}
+        tracked={weapon.diamondTracked}
+        matches={weapon.diamondMatches}
+        unlocked={weapon.diamondUnlocked}
+      />
 
       <Card>
         <CardHeader>
@@ -92,9 +107,18 @@ export function WeaponDetail({ weapon }: { weapon: WeaponDetailDTO }) {
                   {camoLabel(group.category)}
                 </h2>
                 {group.category === "GOLD" ? null : (
-                  <p className="text-xs text-muted-foreground">
-                    {done} of {group.rows.length} patterns
-                  </p>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      {done} of {group.rows.length} patterns
+                    </p>
+                    <CategoryBulk
+                      weaponId={weapon.id}
+                      slug={weapon.slug}
+                      category={group.category}
+                      allComplete={group.rows.length > 0 && done === group.rows.length}
+                      anyComplete={done > 0}
+                    />
+                  </div>
                 )}
               </div>
               {group.category === "GOLD"

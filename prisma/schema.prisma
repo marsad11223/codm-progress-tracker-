@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 enum WeaponCategory {
@@ -118,6 +119,9 @@ model UserWeaponProgress {
   weaponId           String
   progressPercentage Int       @default(0)
   goldUnlocked       Boolean   @default(false)
+  diamondTracked     Boolean   @default(false)
+  diamondMatches     Int       @default(0)
+  diamondUnlocked    Boolean   @default(false)
   startedAt          DateTime?
   completedAt        DateTime?
   updatedAt          DateTime  @updatedAt
