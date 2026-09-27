@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WeaponCategory {
+  SMG
+  AR
+  LMG
+  SNIPER
+  MARKSMAN
+  SHOTGUN
+  PISTOL
+  LAUNCHER
+  MELEE
+}
+
+enum CamoCategory {
+  SAND
+  DRAGON
+  SPLINTER
+  TIGER
+  JUNGLE
+  REPTILE
+  GOLD
+}
+
+enum ChallengeType {
+  KILLS
+  HEADSHOTS
+  HIPFIRE
+  LONGSHOT
+  FIVE_ATTACHMENTS
+  NO_ATTACHMENTS
+  CROUCHED
+  OTHER
+}
+
+model User {
+  id          String   @id
+  displayName String
+  createdAt   DateTime @default(now())
+
+  weaponProgress    UserWeaponProgress[]
+  challengeProgress UserChallengeProgress[]
+  grindOrders       GrindOrder[]
+}
+
+model Weapon {
+  id                String         @id @default(cuid())
+  name              String
+  slug              String         @unique
+  category          WeaponCategory
+  imageUrl          String?
+  releaseSeason     String?
+  difficultyScore   Int?
+  difficultyReasons Json           @default("[]")
+  active            Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  camos       Camo[]
+  challenges  Challenge[]
+  progress    UserWeaponProgress[]
+  grindOrders GrindOrder[]
+
+  @@index([category, active])
+  @@index([difficultyScore])
+  @@index([updatedAt])
+}
+
+model Camo {
+  id          String       @id @default(cuid())
+  weaponId    String
+  category    CamoCategory
+  name        String
+  requirement String
+  target      Int
+  imageUrl    String?
+  sortOrder   Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  weapon     Weapon      @relation(fields: [weaponId], references: [id], onDelete: Cascade)
+  challenges Challenge[]
+
+  @@unique([weaponId, category, name])
+  @@index([weaponId, sortOrder])
+  @@index([weaponId, category])
+}
+
+model Challenge {
+  id             String        @id @default(cuid())
+  weaponId       String
+  camoId         String
+  description    String
+  target         Int
+  challengeType  ChallengeType
+  targetVerified Boolean       @default(false)
+  sortOrder      Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  weapon   Weapon                  @relation(fields: [weaponId], references: [id], onDelete: Cascade)
+  camo     Camo                    @relation(fields: [camoId], references: [id], onDelete: Cascade)
+  progress UserChallengeProgress[]
+
+  @@index([weaponId])
+  @@index([camoId, sortOrder])
+}
+
+model UserWeaponProgress {
+  userId             String
+  weaponId           String
+  progressPercentage Int       @default(0)
+  goldUnlocked       Boolean   @default(false)
+  startedAt          DateTime?
+  completedAt        DateTime?
+  updatedAt          DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weapon Weapon @relation(fields: [weaponId], references: [id], onDelete: Cascade)
+
+  @@id([userId, weaponId])
+  @@index([userId, goldUnlocked])
+  @@index([userId, updatedAt])
+  @@index([userId, progressPercentage])
+}
+
+model UserChallengeProgress {
+  userId       String
+  challengeId  String
+  currentValue Int      @default(0)
+  targetValue  Int
+  completed    Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, challengeId])
+  @@index([userId, completed])
+  @@index([userId, updatedAt])
+}
+
+model GrindOrder {
+  id        String   @id @default(cuid())
+  userId    String
+  weaponId  String
+  position  Int
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weapon Weapon @relation(fields: [weaponId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weaponId])
+  @@unique([userId, position])
+  @@index([userId, position])
+}
