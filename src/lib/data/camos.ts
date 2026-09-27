@@ -9,6 +9,7 @@ export async function listCamosForWeapon(
 ): Promise<CamoDTO[]> {
   const [camos, progress] = await Promise.all([
     db.camo.findMany({
+      relationLoadStrategy: "join",
       where: { weaponId },
       include: {
         challenges: {

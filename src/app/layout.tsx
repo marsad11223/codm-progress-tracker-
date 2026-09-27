@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Rajdhani } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -28,6 +28,25 @@ export const metadata: Metadata = {
   },
   description:
     "Personal Call of Duty: Mobile camo tracker. Progress stays in your database. This app does not connect to Call of Duty.",
+  applicationName: "Camo Command",
+  appleWebApp: {
+    capable: true,
+    title: "Camo Command",
+    statusBarStyle: "black",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#171410",
 };
 
 export const dynamic = "force-dynamic";

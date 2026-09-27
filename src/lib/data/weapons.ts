@@ -9,6 +9,7 @@ function progressFilter(userId: string) {
 
 export async function listWeapons(db: Db, userId: string): Promise<WeaponDTO[]> {
   const rows = await db.weapon.findMany({
+    relationLoadStrategy: "join",
     where: { active: true },
     include: { progress: progressFilter(userId) },
     orderBy: { name: "asc" },
@@ -22,6 +23,7 @@ export async function getWeaponBySlug(
   slug: string,
 ): Promise<WeaponDTO | null> {
   const row = await db.weapon.findFirst({
+    relationLoadStrategy: "join",
     where: { slug, active: true },
     include: { progress: progressFilter(userId) },
   });
@@ -98,6 +100,7 @@ export async function queryWeapons(
   }
 
   const rows = await db.weapon.findMany({
+    relationLoadStrategy: "join",
     where,
     include: { progress: progressFilter(userId) },
   });
@@ -110,6 +113,7 @@ export async function getWeaponDetail(
   where: { slug: string } | { id: string },
 ): Promise<WeaponDetailDTO | null> {
   const row = await db.weapon.findFirst({
+    relationLoadStrategy: "join",
     where: { ...where, active: true },
     include: {
       progress: progressFilter(userId),

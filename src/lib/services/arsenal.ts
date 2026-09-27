@@ -1,6 +1,6 @@
-import { camoProvider, weaponProvider } from "@/lib/data/database-provider";
-import { countActive, queryWeapons, type WeaponListFilter } from "@/lib/data/weapons";
-import { prisma } from "@/lib/db/prisma";
+import { cache } from "react";
+import { countActive, getWeaponDetail, queryWeapons, type WeaponListFilter } from "@/lib/data/weapons";
+import { prisma, withRetry } from "@/lib/db/prisma";
 import { categoriesForFilter } from "@/lib/format";
 import { LOCAL_USER_ID } from "@/lib/constants";
 import type { WeaponCategory, WeaponDetailDTO, WeaponDTO } from "@/types";
@@ -61,7 +61,11 @@ function sortWeapons(weapons: WeaponDTO[], sort: ArsenalQuery["sort"]): WeaponDT
   return rows;
 }
 
-export async function listArsenal(query: ArsenalQuery): Promise<ArsenalResult> {
+export function listArsenal(query: ArsenalQuery): Promise<ArsenalResult> {
+  return withRetry(() => readArsenal(query));
+}
+
+async function readArsenal(query: ArsenalQuery): Promise<ArsenalResult> {
   const categories = categoriesForFilter(query.category);
   const catalogueCount = await countActive(prisma);
   if (catalogueCount === 0) {
@@ -98,11 +102,14 @@ export async function listArsenal(query: ArsenalQuery): Promise<ArsenalResult> {
   };
 }
 
-export async function getWeaponPage(
+export const getWeaponPage = cache(
+  (slug: string): Promise<WeaponDetailDTO | null> => {
+    return withRetry(() => readWeaponPage(slug));
+  },
+);
+
+async function readWeaponPage(
   slug: string,
 ): Promise<WeaponDetailDTO | null> {
-  const weapon = await weaponProvider.getWeaponBySlug(slug);
-  if (!weapon) return null;
-  const camos = await camoProvider.listCamosForWeapon(weapon.id);
-  return { ...weapon, camos };
+  return getWeaponDetail(prisma, LOCAL_USER_ID, { slug });
 }

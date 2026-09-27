@@ -1,11 +1,15 @@
 import { countUnverifiedWeapons } from "@/lib/data/challenges";
 import { listWeapons } from "@/lib/data/weapons";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withRetry } from "@/lib/db/prisma";
 import { LOCAL_USER_ID } from "@/lib/constants";
 import { categoryLabel } from "@/lib/format";
 import { WEAPON_CATEGORIES, type AnalyticsSnapshot } from "@/types";
 
-export async function getAnalytics(): Promise<AnalyticsSnapshot> {
+export function getAnalytics(): Promise<AnalyticsSnapshot> {
+  return withRetry(readAnalytics);
+}
+
+async function readAnalytics(): Promise<AnalyticsSnapshot> {
   const [weapons, unverifiedWeapons] = await Promise.all([
     listWeapons(prisma, LOCAL_USER_ID),
     countUnverifiedWeapons(prisma),

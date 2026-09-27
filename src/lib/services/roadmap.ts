@@ -1,11 +1,18 @@
 import { replaceGrindOrder, listGrind } from "@/lib/data/grind-order";
 import { listWeapons } from "@/lib/data/weapons";
-import { prisma, runTransaction } from "@/lib/db/prisma";
+import { prisma, runTransaction, withRetry } from "@/lib/db/prisma";
 import { AppError } from "@/lib/app-error";
 import { LOCAL_USER_ID } from "@/lib/constants";
 import type { RoadmapItem, WeaponDTO } from "@/types";
 
-export async function getRoadmap(): Promise<{
+export function getRoadmap(): Promise<{
+  ordered: RoadmapItem[];
+  tray: WeaponDTO[];
+}> {
+  return withRetry(readRoadmap);
+}
+
+async function readRoadmap(): Promise<{
   ordered: RoadmapItem[];
   tray: WeaponDTO[];
 }> {
@@ -38,14 +45,23 @@ export async function saveGrindOrder(weaponIds: string[]): Promise<void> {
 }
 
 export async function promoteWeaponToFirst(weaponId: string): Promise<void> {
-  const weapons = await listWeapons(prisma, LOCAL_USER_ID);
-  if (!weapons.some((weapon) => weapon.id === weaponId)) {
+  const weapon = await prisma.weapon.findFirst({
+    where: { id: weaponId, active: true },
+    select: { id: true },
+  });
+  if (!weapon) {
     throw new AppError("That weapon is not in the active catalogue.");
   }
-  const ordered = await listGrind(prisma, LOCAL_USER_ID);
+  const ordered = await prisma.grindOrder.findMany({
+    where: { userId: LOCAL_USER_ID },
+    orderBy: { position: "asc" },
+    select: { weaponId: true },
+  });
   const ids = ordered
-    .map((entry) => entry.weapon.id)
+    .map((entry) => entry.weaponId)
     .filter((id) => id !== weaponId);
   ids.unshift(weaponId);
-  await saveGrindOrder(ids);
+  await runTransaction(async (db) => {
+    await replaceGrindOrder(db, LOCAL_USER_ID, ids);
+  });
 }

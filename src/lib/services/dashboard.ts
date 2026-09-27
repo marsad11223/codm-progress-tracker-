@@ -1,6 +1,6 @@
 import { listGrind } from "@/lib/data/grind-order";
 import { listWeapons } from "@/lib/data/weapons";
-import { prisma, type Db } from "@/lib/db/prisma";
+import { prisma, withRetry, type Db } from "@/lib/db/prisma";
 import { catalogueLabel, categoriesForFilter, roundHalfUp } from "@/lib/format";
 import { pickNextBest, rankOpenWeapons } from "@/lib/services/recommendation";
 import type { DashboardSummary, GrindCandidate, WeaponDTO } from "@/types";
@@ -15,6 +15,14 @@ export async function getDashboard(
   userId: string,
   category = "all",
   db: Db = prisma,
+): Promise<DashboardSummary> {
+  return withRetry(() => readDashboard(userId, category, db));
+}
+
+async function readDashboard(
+  userId: string,
+  category: string,
+  db: Db,
 ): Promise<DashboardSummary> {
   const [weapons, grind] = await Promise.all([
     listWeapons(db, userId),

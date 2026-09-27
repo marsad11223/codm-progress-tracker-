@@ -10,17 +10,15 @@ import {
   upsertChallengeProgress,
   upsertWeaponProgress,
 } from "@/lib/data/progress";
-import { getWeaponDetail } from "@/lib/data/weapons";
 import { runTransaction, type Db } from "@/lib/db/prisma";
 import { AppError } from "@/lib/app-error";
 import { DIAMOND_MATCH_TARGET } from "@/lib/constants";
 import { clampPercent, roundHalfUp } from "@/lib/format";
-import { getDashboard } from "@/lib/services/dashboard";
-import type { CamoCategory, DashboardSummary, WeaponDetailDTO } from "@/types";
+import type { CamoCategory } from "@/types";
 
-export type ToggleResult = {
-  weapon: WeaponDetailDTO;
-  summary: DashboardSummary;
+export type RecomputedProgress = {
+  progressPercentage: number;
+  goldUnlocked: boolean;
 };
 
 export async function recomputeWeaponProgress(
@@ -28,7 +26,7 @@ export async function recomputeWeaponProgress(
   userId: string,
   weaponId: string,
   now = new Date(),
-): Promise<WeaponDetailDTO> {
+): Promise<RecomputedProgress> {
   const challenges = await listChallengeState(db, userId, weaponId);
   const total = challenges.length;
   const done = challenges.filter((challenge) => challenge.completed).length;
@@ -63,20 +61,15 @@ export async function recomputeWeaponProgress(
     completedAt,
   });
 
-  const weapon = await getWeaponDetail(db, userId, { id: weaponId });
-  if (!weapon) {
-    throw new AppError("Weapon not found.");
-  }
-  return weapon;
+  return { progressPercentage, goldUnlocked };
 }
 
 export async function toggleChallenge(input: {
   userId: string;
   challengeId: string;
   completed: boolean;
-  category?: string;
-}): Promise<ToggleResult> {
-  return runTransaction(async (db) => {
+}): Promise<void> {
+  await runTransaction(async (db) => {
     const challenge = await findChallenge(db, input.challengeId);
     if (!challenge) {
       throw new AppError("Challenge not found.");
@@ -89,14 +82,7 @@ export async function toggleChallenge(input: {
       currentValue: input.completed ? challenge.target : 0,
       targetValue: challenge.target,
     });
-    const weapon = await recomputeWeaponProgress(
-      db,
-      input.userId,
-      challenge.weaponId,
-      now,
-    );
-    const summary = await getDashboard(input.userId, input.category ?? "all", db);
-    return { weapon, summary };
+    await recomputeWeaponProgress(db, input.userId, challenge.weaponId, now);
   });
 }
 

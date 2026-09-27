@@ -7,6 +7,7 @@ export async function listGrind(
   userId: string,
 ): Promise<{ weapon: WeaponDTO; position: number }[]> {
   const rows = await db.grindOrder.findMany({
+    relationLoadStrategy: "join",
     where: { userId, weapon: { active: true } },
     orderBy: { position: "asc" },
     include: {
